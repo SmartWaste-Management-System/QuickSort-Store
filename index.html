@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QuickSort Store</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+/* Layout concept: a workbench. Controls on top, the live sort beside its
+   numbers, then the sorted shelf of product cards, then the theory. */
+
+:root {
+  /* Colour tokens (light) */
+  --bg: #ebeff3;
+  --surface: #ffffff;
+  --surface-2: #f3f6f9;
+  --ink: #101a26;
+  --muted: #566677;
+  --line: #d3dbe3;
+  --accent: #1b4fd8;
+  --accent-ink: #ffffff;
+
+  /* Algorithm states */
+  --bar: #a7b7c9;
+  --pivot: #d6336c;
+  --compare: #e9a200;
+  --swap: #7048e8;
+  --sorted: #2b9348;
+
+  /* Category tiles */
+  --tile-electronics: #dbe7fb;
+  --tile-fashion: #f6e0ea;
+  --tile-home: #e1efe1;
+  --tile-fitness: #fbe8d3;
+  --tile-books: #e6e0f6;
+
+  /* Type */
+  --f-display: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --radius: 10px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e151d;
+    --surface: #16202b;
+    --surface-2: #1b2733;
+    --ink: #e7edf3;
+    --muted: #94a4b5;
+    --line: #2a3846;
+    --accent: #6c98ff;
+    --accent-ink: #0b1530;
+    --bar: #43586d;
+    --pivot: #ff6b9a;
+    --compare: #f2b531;
+    --swap: #a58bff;
+    --sorted: #4cc26b;
+    --tile-electronics: #1f3252;
+    --tile-fashion: #4a2536;
+    --tile-home: #1f3d2b;
+    --tile-fitness: #4b3320;
+    --tile-books: #38305a;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0e151d;
+  --surface: #16202b;
+  --surface-2: #1b2733;
+  --ink: #e7edf3;
+  --muted: #94a4b5;
+  --line: #2a3846;
+  --accent: #6c98ff;
+  --accent-ink: #0b1530;
+  --bar: #43586d;
+  --pivot: #ff6b9a;
+  --compare: #f2b531;
+  --swap: #a58bff;
+  --sorted: #4cc26b;
+  --tile-electronics: #1f3252;
+  --tile-fashion: #4a2536;
+  --tile-home: #1f3d2b;
+  --tile-fitness: #4b3320;
+  --tile-books: #38305a;
+  color-scheme: dark;
+}
+
+/* Base */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+h1, h2, h3 { font-family: var(--f-display); line-height: 1.15; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+code { font-family: var(--f-mono); font-size: 0.92em; }
+
+.wrap {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px));
+}
+
+.sr {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Header */
+.top { background: var(--surface); border-bottom: 1px solid var(--line); }
+.top-inner {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  padding-block: 28px 26px;
+}
+.top-copy { min-width: 0; max-width: 760px; display: grid; gap: 10px; }
+.eyebrow {
+  font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+}
+h1 { font-size: clamp(1.7rem, 4.6vw, 2.7rem); font-weight: 800; letter-spacing: -0.02em; }
+.sub { color: var(--muted); max-width: 62ch; }
+
+/* Buttons and fields */
+.btn {
+  font: inherit; font-weight: 600; font-size: 14px;
+  padding: 9px 16px; min-height: 40px;
+  border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; flex: none; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+main { padding-block: 20px 8px; display: grid; gap: 20px; }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  min-width: 0;
+}
+.panel h2, .catalog-head h2 { font-size: 1.15rem; font-weight: 700; }
+.hint { color: var(--muted); font-size: 13px; }
+
+.controls {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  align-items: end;
+}
+.field { display: grid; gap: 6px; min-width: 0; }
+.field label, .speed {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--muted);
+}
+.field-btn .btn { width: 100%; }
+
+input[type="search"], select {
+  font: inherit; font-size: 14px; color: var(--ink);
+  width: 100%; min-height: 40px; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--surface-2);
+}
+input[type="range"] { accent-color: var(--accent); }
+
+/* Lab: visualizer + stats */
+.lab { display: grid; gap: 20px; grid-template-columns: minmax(0, 1.8fr) minmax(280px, 1fr); }
+.panel-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px; }
+
+.bars {
+  display: flex; align-items: flex-end; gap: 3px;
+  height: 240px; margin-top: 16px; padding: 10px 10px 0;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px;
+}
+.bar {
+  flex: 1 1 0; min-width: 0; border-radius: 3px 3px 0 0;
+  background: var(--bar); opacity: 0.55;
+  transition: height 0.18s ease, background-color 0.12s, opacity 0.12s;
+}
+.bar.live { opacity: 1; }
+.bar.sorted { background: var(--sorted); opacity: 1; }
+.bar.compare { background: var(--compare); opacity: 1; }
+.bar.pivot { background: var(--pivot); opacity: 1; }
+.bar.swapped { background: var(--swap); opacity: 1; }
+
+.step {
+  margin-top: 12px; min-height: 3em; padding: 10px 12px;
+  background: var(--surface-2); border-radius: 8px;
+  font-family: var(--f-mono); font-size: 13px;
+}
+.viz-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
+.speed { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.speed input { width: 120px; }
+
+.legend { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); }
+.legend li { display: flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.sw-bar { background: var(--bar); }
+.sw-pivot { background: var(--pivot); }
+.sw-compare { background: var(--compare); }
+.sw-swap { background: var(--swap); }
+.sw-sorted { background: var(--sorted); }
+
+/* Stats */
+.stat-grid { margin: 14px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat-grid > div { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
+.stat-grid .wide { grid-column: 1 / -1; }
+.stat-grid dt { font-size: 12px; color: var(--muted); }
+.stat-grid dd {
+  margin: 2px 0 0; font-family: var(--f-mono); font-size: 1.5rem; font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.ref { margin-top: 14px; font-family: var(--f-mono); font-size: 12.5px; color: var(--muted); }
+.note { margin-top: 10px; font-size: 14px; }
+
+/* Catalog */
+.catalog { display: grid; gap: 12px; }
+.catalog-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+
+.grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+.card {
+  display: flex; flex-direction: column; min-width: 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); overflow: hidden;
+}
+.card[hidden] { display: none; }
+.tile {
+  height: 104px; display: grid; place-items: center;
+  font-family: var(--f-display); font-weight: 800; font-size: 2.3rem;
+  letter-spacing: -0.02em; color: var(--ink);
+}
+.tile span { opacity: 0.7; }
+.card[data-cat="electronics"] .tile { background: var(--tile-electronics); }
+.card[data-cat="fashion"] .tile { background: var(--tile-fashion); }
+.card[data-cat="home"] .tile { background: var(--tile-home); }
+.card[data-cat="fitness"] .tile { background: var(--tile-fitness); }
+.card[data-cat="books"] .tile { background: var(--tile-books); }
+
+.card-body { padding: 12px 14px 14px; display: grid; gap: 8px; align-content: start; flex: 1; }
+.card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cat { font-size: 12px; color: var(--muted); }
+.rank {
+  font-family: var(--f-mono); font-size: 12px; font-weight: 500;
+  padding: 1px 7px; border-radius: 99px; background: var(--surface-2); color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.card h3 { font-size: 1.02rem; font-weight: 600; overflow-wrap: anywhere; }
+.price-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.price { font-family: var(--f-mono); font-size: 1.2rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+.mrp { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.off { font-size: 13px; font-weight: 600; color: var(--sorted); }
+.facts { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.is-key { color: var(--accent) !important; font-weight: 600; }
+.card h3.is-key { font-weight: 700; }
+
+.empty { padding: 28px 16px; text-align: center; color: var(--muted); background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); }
+
+/* Algorithm + benchmark */
+.lower { align-items: start; }
+.algo { display: grid; gap: 14px; }
+.how { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.code-wrap { overflow-x: auto; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); }
+.code { margin: 0; padding: 14px; font-family: var(--f-mono); font-size: 13px; line-height: 1.55; }
+.table-wrap { overflow-x: auto; }
+.complexity { width: 100%; border-collapse: collapse; font-size: 14px; }
+.complexity th, .complexity td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.complexity th { font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.complexity td:nth-child(2) { font-family: var(--f-mono); white-space: nowrap; }
+.fine { font-size: 13px; color: var(--muted); }
+
+.bench { display: grid; gap: 12px; }
+.bench-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.bench-row select { flex: 1 1 140px; width: auto; }
+.bench-out { margin: 0; display: grid; gap: 8px; }
+.bench-out > div { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
+.bench-out dt { font-size: 12px; color: var(--muted); }
+.bench-out dd { margin: 2px 0 0; font-family: var(--f-mono); font-size: 14px; overflow-wrap: anywhere; }
+
+.foot { padding-block: 18px 30px; color: var(--muted); font-size: 13px; }
+
+/* Narrow screens */
+@media (max-width: 860px) {
+  .lab { grid-template-columns: minmax(0, 1fr); }
+  .speed { margin-left: 0; }
+}
+@media (max-width: 520px) {
+  .top-inner { flex-direction: column; }
+  .bars { height: 200px; gap: 2px; padding-inline: 6px; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .tile { height: 80px; font-size: 1.8rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-inner">
+    <div class="top-copy">
+      <p class="eyebrow">Data Structures and Algorithms project</p>
+      <h1>E-Commerce Product Sorting System</h1>
+      <p class="sub">Using the Quick Sort algorithm. Every list on this page is ordered by a Quick Sort written from scratch. Choose a sort key, a pivot rule and an input order, then watch the algorithm work.</p>
+    </div>
+    <button id="themeBtn" class="btn ghost" type="button">Switch theme</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Controls -->
+  <section class="panel controls" aria-label="Sorting controls">
+    <div class="field">
+      <label for="search">Search products</label>
+      <input id="search" type="search" placeholder="Try &quot;watch&quot; or &quot;home&quot;" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="category">Category</label>
+      <select id="category">
+        <option value="all">All categories</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="sortKey">Sort by</label>
+      <select id="sortKey">
+        <option value="price">Price</option>
+        <option value="rating">Customer rating</option>
+        <option value="reviews">Number of reviews</option>
+        <option value="discount">Discount</option>
+        <option value="name">Name</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="order">Order</label>
+      <select id="order">
+        <option value="asc">Low to high</option>
+        <option value="desc">High to low</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="pivot">Pivot rule</label>
+      <select id="pivot">
+        <option value="last">Last element</option>
+        <option value="first">First element</option>
+        <option value="middle">Middle element</option>
+        <option value="median">Median of three</option>
+        <option value="random">Random element</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="arrangement">Input order</label>
+      <select id="arrangement">
+        <option value="shuffled">Shuffled</option>
+        <option value="sorted">Already sorted</option>
+        <option value="reverse">Reverse sorted</option>
+      </select>
+    </div>
+    <div class="field field-btn">
+      <button id="reshuffle" class="btn" type="button">Shuffle again</button>
+    </div>
+  </section>
+
+  <!-- Visualizer + stats -->
+  <section class="lab">
+    <div class="panel viz">
+      <div class="panel-head">
+        <h2>Quick Sort in motion</h2>
+        <p id="vizInfo" class="hint"></p>
+      </div>
+
+      <div id="bars" class="bars" role="img" aria-label="Bar chart of the products being sorted"></div>
+      <p id="stepText" class="step" aria-live="polite"></p>
+
+      <div class="viz-actions">
+        <button id="playBtn" class="btn primary" type="button">Play</button>
+        <button id="stepBtn" class="btn" type="button">Step</button>
+        <button id="resetBtn" class="btn" type="button">Reset</button>
+        <label class="speed" for="speed">Speed
+          <input id="speed" type="range" min="1" max="10" value="5">
+        </label>
+      </div>
+
+      <ul class="legend" aria-label="Colour legend">
+        <li><i class="sw sw-bar"></i>Unsorted</li>
+        <li><i class="sw sw-pivot"></i>Pivot</li>
+        <li><i class="sw sw-compare"></i>Being compared</li>
+        <li><i class="sw sw-swap"></i>Just swapped</li>
+        <li><i class="sw sw-sorted"></i>Final position</li>
+      </ul>
+    </div>
+
+    <aside class="panel stats" aria-label="Run statistics">
+      <h2>Run statistics</h2>
+      <dl class="stat-grid">
+        <div><dt>Comparisons</dt><dd id="sComp">0</dd></div>
+        <div><dt>Swaps</dt><dd id="sSwap">0</dd></div>
+        <div><dt>Partitions</dt><dd id="sParts">0</dd></div>
+        <div><dt>Recursion depth</dt><dd id="sDepth">0</dd></div>
+        <div class="wide"><dt>Sort time</dt><dd id="sTime">0 ms</dd></div>
+      </dl>
+      <p id="sRef" class="ref"></p>
+      <p id="sNote" class="note"></p>
+    </aside>
+  </section>
+
+  <!-- Catalog -->
+  <section aria-labelledby="catalogHead" class="catalog">
+    <div class="catalog-head">
+      <h2 id="catalogHead">Sorted catalog</h2>
+      <p id="catalogMeta" class="hint"></p>
+    </div>
+    <div id="grid" class="grid"></div>
+    <p id="empty" class="empty" hidden>No products match this search. Clear the search box or pick another category.</p>
+  </section>
+
+  <!-- Algorithm + benchmark -->
+  <section class="lab lower">
+    <div class="panel algo">
+      <h2>How the sort works</h2>
+      <ol class="how">
+        <li>Pick a pivot and move it to the end of the current range.</li>
+        <li>Scan the range once. Every product that belongs before the pivot is swapped into the front part.</li>
+        <li>Drop the pivot between the two parts. It is now in its final position.</li>
+        <li>Repeat on the part to its left and the part to its right until every range has one item.</li>
+      </ol>
+      <div class="code-wrap"><pre class="code"><code>function quickSort(arr, lo = 0, hi = arr.length - 1) {
+  if (lo &gt;= hi) return;
+  const p = partition(arr, lo, hi);
+  quickSort(arr, lo, p - 1);
+  quickSort(arr, p + 1, hi);
+}
+
+function partition(arr, lo, hi) {
+  const pivot = arr[hi];
+  let i = lo;
+  for (let j = lo; j &lt; hi; j++) {
+    if (compare(arr[j], pivot) &lt; 0) {
+      swap(arr, i, j);
+      i++;
+    }
+  }
+  swap(arr, i, hi);
+  return i;
+}</code></pre></div>
+      <div class="table-wrap">
+        <table class="complexity">
+          <thead><tr><th>Case</th><th>Time</th><th>When it happens</th></tr></thead>
+          <tbody>
+            <tr><td>Best</td><td>O(n log n)</td><td>Pivots split every range in half</td></tr>
+            <tr><td>Average</td><td>O(n log n)</td><td>Typical, shuffled input</td></tr>
+            <tr><td>Worst</td><td>O(n²)</td><td>Sorted input with a first or last pivot</td></tr>
+            <tr><td>Extra space</td><td>O(log n)</td><td>Recursion stack only</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="fine">Quick Sort is not stable, so products with the same price could end up in any order. This project breaks ties by product ID so the result is always repeatable.</p>
+    </div>
+
+    <div class="panel bench">
+      <h2>Speed test</h2>
+      <p class="fine">Sorts a list of random prices with this Quick Sort (using the pivot rule chosen above) and with the browser's built-in sort.</p>
+      <div class="bench-row">
+        <label for="benchSize" class="sr">List size</label>
+        <select id="benchSize">
+          <option value="1000">1,000 items</option>
+          <option value="10000" selected>10,000 items</option>
+          <option value="100000">100,000 items</option>
+        </select>
+        <button id="benchBtn" class="btn primary" type="button">Run test</button>
+      </div>
+      <dl id="benchOut" class="bench-out" aria-live="polite">
+        <div><dt>Quick Sort (this project)</dt><dd id="bQuick">Not run yet</dd></div>
+        <div><dt>Built-in sort</dt><dd id="bNative">Not run yet</dd></div>
+        <div><dt>Same result</dt><dd id="bSame">Not run yet</dd></div>
+      </dl>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap foot">
+  <p>Built with plain HTML, CSS and JavaScript. Open <code>index.html</code> in any browser, no install needed.</p>
+</footer>
+
+<script>
+'use strict';
+
+/* =====================================================================
+   1. Product data (prices in Indian rupees)
+   ===================================================================== */
+const PRODUCTS = [
+  { id: 1,  name: 'Wireless Earbuds Pro',        category: 'Electronics', price: 2499, rating: 4.4, reviews: 3820, discount: 32 },
+  { id: 2,  name: 'Smart Watch Fit 2',           category: 'Electronics', price: 3999, rating: 4.2, reviews: 2140, discount: 45 },
+  { id: 3,  name: 'Bluetooth Speaker Mini',      category: 'Electronics', price: 1499, rating: 4.1, reviews: 5210, discount: 38 },
+  { id: 4,  name: 'Power Bank 20000mAh',         category: 'Electronics', price: 1799, rating: 4.5, reviews: 8905, discount: 28 },
+  { id: 5,  name: 'Mechanical Keyboard TKL',     category: 'Electronics', price: 4299, rating: 4.6, reviews: 1320, discount: 20 },
+  { id: 6,  name: 'Webcam 1080p',                category: 'Electronics', price: 2199, rating: 3.9, reviews: 960,  discount: 41 },
+  { id: 7,  name: 'Cotton Crew T-Shirt',         category: 'Fashion',     price: 599,  rating: 4.0, reviews: 12480, discount: 55 },
+  { id: 8,  name: 'Slim Fit Jeans',              category: 'Fashion',     price: 1499, rating: 4.1, reviews: 6740, discount: 50 },
+  { id: 9,  name: 'Running Shoes Aero',          category: 'Fashion',     price: 3299, rating: 4.5, reviews: 4010, discount: 35 },
+  { id: 10, name: 'Leather Wallet',              category: 'Fashion',     price: 899,  rating: 4.3, reviews: 3350, discount: 60 },
+  { id: 11, name: 'Hooded Sweatshirt',           category: 'Fashion',     price: 1799, rating: 4.2, reviews: 2870, discount: 48 },
+  { id: 12, name: 'Canvas Backpack 25L',         category: 'Fashion',     price: 1299, rating: 4.4, reviews: 7160, discount: 52 },
+  { id: 13, name: 'Ceramic Coffee Mug Set',      category: 'Home',        price: 749,  rating: 4.3, reviews: 1890, discount: 30 },
+  { id: 14, name: 'Steel Water Bottle 1L',       category: 'Home',        price: 649,  rating: 4.6, reviews: 15320, discount: 22 },
+  { id: 15, name: 'LED Desk Lamp',               category: 'Home',        price: 1199, rating: 4.4, reviews: 4480, discount: 33 },
+  { id: 16, name: 'Memory Foam Pillow',          category: 'Home',        price: 999,  rating: 4.0, reviews: 5920, discount: 44 },
+  { id: 17, name: 'Non-stick Cookware Set',      category: 'Home',        price: 2799, rating: 4.2, reviews: 3070, discount: 42 },
+  { id: 18, name: 'Cotton Bedsheet Queen',       category: 'Home',        price: 1399, rating: 4.1, reviews: 2260, discount: 58 },
+  { id: 19, name: 'Yoga Mat 6mm',                category: 'Fitness',     price: 899,  rating: 4.3, reviews: 6410, discount: 40 },
+  { id: 20, name: 'Adjustable Dumbbell Pair',    category: 'Fitness',     price: 3499, rating: 4.5, reviews: 1740, discount: 25 },
+  { id: 21, name: 'Resistance Band Set',         category: 'Fitness',     price: 499,  rating: 4.2, reviews: 9830, discount: 62 },
+  { id: 22, name: 'Skipping Rope Pro',           category: 'Fitness',     price: 349,  rating: 4.0, reviews: 4120, discount: 46 },
+  { id: 23, name: 'Notebook Pack of 5',          category: 'Books',       price: 399,  rating: 4.7, reviews: 2950, discount: 18 },
+  { id: 24, name: 'Fiction Bestseller Box Set',  category: 'Books',       price: 1899, rating: 4.8, reviews: 1080, discount: 36 }
+];
+
+/* =====================================================================
+   2. Sort keys and comparator
+   ===================================================================== */
+const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+
+const KEYS = {
+  price:    { label: 'Price',             type: 'number', get: p => p.price,    fmt: v => inr.format(v),                asc: 'Low to high', desc: 'High to low' },
+  rating:   { label: 'Customer rating',   type: 'number', get: p => p.rating,   fmt: v => v.toFixed(1) + ' stars',      asc: 'Low to high', desc: 'High to low' },
+  reviews:  { label: 'Number of reviews', type: 'number', get: p => p.reviews,  fmt: v => v.toLocaleString('en-IN'),    asc: 'Fewest first', desc: 'Most first' },
+  discount: { label: 'Discount',          type: 'number', get: p => p.discount, fmt: v => v + '% off',                  asc: 'Low to high', desc: 'High to low' },
+  name:     { label: 'Name',              type: 'string', get: p => p.name,     fmt: v => v,                            asc: 'A to Z',      desc: 'Z to A' }
+};
+
+const PIVOT_LABELS = {
+  last: 'last element',
+  first: 'first element',
+  middle: 'middle element',
+  median: 'median of three',
+  random: 'random element'
+};
+
+/* Total order: ties on the chosen key are broken by product id, so the
+   output is the same on every run even though Quick Sort is not stable. */
+function makeComparator(keyName, order) {
+  const k = KEYS[keyName];
+  const dir = order === 'desc' ? -1 : 1;
+  return (a, b) => {
+    const x = k.get(a);
+    const y = k.get(b);
+    const r = k.type === 'string'
+      ? x.localeCompare(y, 'en', { sensitivity: 'base' })
+      : x - y;
+    return r !== 0 ? r * dir : a.id - b.id;
+  };
+}
+
+/* =====================================================================
+   3. Quick Sort (Lomuto partition, selectable pivot rule)
+      Returns a new sorted array, run statistics, and optionally a list
+      of events that the visualizer replays step by step.
+   ===================================================================== */
+const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+
+function medianOfThree(a, lo, hi, cmp) {
+  const mid = lo + ((hi - lo) >> 1);
+  const x = a[lo], y = a[mid], z = a[hi];
+  if (cmp(x, y) < 0) {
+    if (cmp(y, z) < 0) return mid;
+    return cmp(x, z) < 0 ? hi : lo;
+  }
+  if (cmp(x, z) < 0) return lo;
+  return cmp(y, z) < 0 ? hi : mid;
+}
+
+function quickSort(items, compare, options = {}) {
+  const pivotRule = options.pivot || 'last';
+  const a = items.slice();
+  const events = options.record ? [] : null;
+  const stats = { comparisons: 0, swaps: 0, partitions: 0, maxDepth: 0, ms: 0 };
+
+  const cmp = (x, y) => { stats.comparisons++; return compare(x, y); };
+
+  const swap = (i, j, why) => {
+    if (i === j) return;
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+    stats.swaps++;
+    if (events) events.push({ t: 'swap', i, j, why });
+  };
+
+  function choosePivot(lo, hi) {
+    switch (pivotRule) {
+      case 'first':  return lo;
+      case 'middle': return lo + ((hi - lo) >> 1);
+      case 'median': return medianOfThree(a, lo, hi, cmp);
+      case 'random': return lo + Math.floor(Math.random() * (hi - lo + 1));
+      default:       return hi;
+    }
+  }
+
+  function partition(lo, hi) {
+    stats.partitions++;
+    swap(choosePivot(lo, hi), hi, 'pivot-move');
+    const pivot = a[hi];
+    if (events) events.push({ t: 'pivot', i: hi });
+    let i = lo;
+    for (let j = lo; j < hi; j++) {
+      const less = cmp(a[j], pivot) < 0;
+      if (events) events.push({ t: 'compare', j, p: hi, less });
+      if (less) { swap(i, j, 'partition'); i++; }
+    }
+    swap(i, hi, 'pivot-final');
+    return i;
+  }
+
+  function sort(lo, hi, depth) {
+    if (lo > hi) return;
+    if (depth > stats.maxDepth) stats.maxDepth = depth;
+    if (events) events.push({ t: 'range', lo, hi });
+    if (lo === hi) {
+      if (events) events.push({ t: 'place', i: lo });
+      return;
+    }
+    const p = partition(lo, hi);
+    if (events) events.push({ t: 'place', i: p });
+    sort(lo, p - 1, depth + 1);
+    sort(p + 1, hi, depth + 1);
+  }
+
+  const t0 = now();
+  sort(0, a.length - 1, 1);
+  stats.ms = now() - t0;
+
+  return { sorted: a, stats, events };
+}
+
+/* Seeded shuffle so "Shuffled" gives the same starting order until the
+   user presses "Shuffle again". */
+function mulberry32(seed) {
+  let a = seed | 0;
+  return function () {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function shuffled(list, seed) {
+  const rand = mulberry32(seed);
+  const a = list.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+/* Node export so the sort can be unit-tested without a browser. */
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { PRODUCTS, KEYS, makeComparator, quickSort, shuffled };
+}
+
+/* =====================================================================
+   4. User interface
+   ===================================================================== */
+function initApp() {
+  const $ = id => document.getElementById(id);
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const state = {
+    key: 'price',
+    order: 'asc',
+    pivot: 'last',
+    arrangement: 'shuffled',
+    search: '',
+    category: 'all',
+    seed: 7
+  };
+
+  const els = {
+    search: $('search'), category: $('category'), sortKey: $('sortKey'), order: $('order'),
+    pivot: $('pivot'), arrangement: $('arrangement'), reshuffle: $('reshuffle'),
+    bars: $('bars'), stepText: $('stepText'), vizInfo: $('vizInfo'),
+    play: $('playBtn'), step: $('stepBtn'), reset: $('resetBtn'), speed: $('speed'),
+    grid: $('grid'), empty: $('empty'), catalogMeta: $('catalogMeta'),
+    sComp: $('sComp'), sSwap: $('sSwap'), sParts: $('sParts'), sDepth: $('sDepth'),
+    sTime: $('sTime'), sRef: $('sRef'), sNote: $('sNote'),
+    benchSize: $('benchSize'), benchBtn: $('benchBtn'),
+    bQuick: $('bQuick'), bNative: $('bNative'), bSame: $('bSame'),
+    theme: $('themeBtn')
+  };
+
+  /* ---------- Theme ---------- */
+  const root = document.documentElement;
+  try {
+    const saved = localStorage.getItem('qs-theme');
+    if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
+  } catch (e) { /* storage unavailable */ }
+  els.theme.addEventListener('click', () => {
+    const current = root.dataset.theme ||
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const next = current === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try { localStorage.setItem('qs-theme', next); } catch (e) { /* ignore */ }
+  });
+
+  /* ---------- Category options ---------- */
+  [...new Set(PRODUCTS.map(p => p.category))].forEach(c => {
+    const o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    els.category.append(o);
+  });
+
+  /* ---------- Product cards (built once, reordered on every sort) ---------- */
+  const cards = new Map();
+  PRODUCTS.forEach(p => {
+    const el = document.createElement('article');
+    el.className = 'card';
+    el.dataset.cat = p.category.toLowerCase();
+    const initials = p.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+    const mrp = Math.round(p.price / (1 - p.discount / 100) / 5) * 5;
+    el.innerHTML =
+      '<div class="tile" aria-hidden="true"><span>' + initials + '</span></div>' +
+      '<div class="card-body">' +
+        '<div class="card-top"><span class="cat">' + p.category + '</span><span class="rank"></span></div>' +
+        '<h3 data-k="name">' + p.name + '</h3>' +
+        '<div class="price-row">' +
+          '<span class="price" data-k="price">' + inr.format(p.price) + '</span>' +
+          '<s class="mrp">' + inr.format(mrp) + '</s>' +
+          '<span class="off" data-k="discount">' + p.discount + '% off</span>' +
+        '</div>' +
+        '<div class="facts">' +
+          '<span data-k="rating">' + p.rating.toFixed(1) + ' &#9733;</span>' +
+          '<span data-k="reviews">' + p.reviews.toLocaleString('en-IN') + ' reviews</span>' +
+        '</div>' +
+      '</div>';
+    cards.set(p.id, el);
+    els.grid.append(el);
+  });
+
+  /* ---------- Visualizer state ---------- */
+  const viz = {
+    start: [],        // input order for this run
+    arr: [],          // working copy that events are replayed on
+    events: [],
+    idx: 0,
+    range: null,
+    pivot: -1,
+    cmp: -1,
+    swap: null,
+    placed: new Set(),
+    playing: false,
+    timer: null,
+    scale: () => 50,
+    text: ''
+  };
+
+  let run = null; // latest quickSort result
+
+  function valueOf(item) { return KEYS[state.key].get(item); }
+
+  function makeScale(list) {
+    const k = KEYS[state.key];
+    if (!list.length) return () => 50;
+    if (k.type === 'string') {
+      const names = list.map(k.get).sort((x, y) => x.localeCompare(y, 'en', { sensitivity: 'base' }));
+      const rank = new Map(names.map((n, i) => [n, i + 1]));
+      return item => 10 + 90 * (rank.get(k.get(item)) / names.length);
+    }
+    const vals = list.map(k.get);
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    return item => 12 + 88 * ((k.get(item) - min) / ((max - min) || 1));
+  }
+
+  function describe(ev) {
+    const k = KEYS[state.key];
+    const f = i => k.fmt(valueOf(viz.arr[i]));
+    switch (ev.t) {
+      case 'range':
+        return ev.lo === ev.hi
+          ? 'One item left in position ' + (ev.lo + 1) + '.'
+          : 'Sorting positions ' + (ev.lo + 1) + ' to ' + (ev.hi + 1) + '.';
+      case 'swap':
+        if (ev.why === 'pivot-move') return 'Pivot (' + PIVOT_LABELS[state.pivot] + ') moves to the end of the range.';
+        if (ev.why === 'pivot-final') return 'Pivot swaps into its final slot.';
+        return 'Swap positions ' + (ev.i + 1) + ' and ' + (ev.j + 1) + '.';
+      case 'pivot':
+        return 'Pivot is ' + f(ev.i) + '.';
+      case 'compare':
+        return 'Does ' + f(ev.j) + ' go before the pivot ' + f(ev.p) + '? ' + (ev.less ? 'Yes, move it to the front part.' : 'No, leave it.');
+      case 'place':
+        return f(ev.i) + ' is now in its final position.';
+      default:
+        return '';
+    }
+  }
+
+  function applyEvent(ev) {
+    switch (ev.t) {
+      case 'range':
+        viz.range = [ev.lo, ev.hi]; viz.pivot = -1; viz.cmp = -1; viz.swap = null; break;
+      case 'pivot':
+        viz.pivot = ev.i; viz.cmp = -1; viz.swap = null; break;
+      case 'compare':
+        viz.cmp = ev.j; viz.swap = null; break;
+      case 'swap': {
+        const t = viz.arr[ev.i]; viz.arr[ev.i] = viz.arr[ev.j]; viz.arr[ev.j] = t;
+        viz.swap = [ev.i, ev.j]; viz.cmp = -1; break;
+      }
+      case 'place':
+        viz.placed.add(ev.i); viz.pivot = -1; viz.cmp = -1; viz.swap = null; break;
+    }
+  }
+
+  function buildBars() {
+    els.bars.textContent = '';
+    viz.start.forEach(() => {
+      const b = document.createElement('div');
+      b.className = 'bar';
+      els.bars.append(b);
+    });
+  }
+
+  function paintBars() {
+    const bars = els.bars.children;
+    const k = KEYS[state.key];
+    for (let i = 0; i < bars.length; i++) {
+      const item = viz.arr[i];
+      const b = bars[i];
+      b.style.height = viz.scale(item).toFixed(1) + '%';
+      b.title = item.name + ': ' + k.fmt(valueOf(item));
+      let cls = 'bar';
+      if (viz.placed.has(i)) cls += ' sorted';
+      else if (i === viz.pivot) cls += ' pivot';
+      else if (i === viz.cmp) cls += ' compare';
+      else if (viz.swap && (i === viz.swap[0] || i === viz.swap[1])) cls += ' swapped';
+      else if (viz.range && i >= viz.range[0] && i <= viz.range[1]) cls += ' live';
+      b.className = cls;
+    }
+    els.stepText.textContent = viz.text;
+    const done = viz.idx >= viz.events.length;
+    els.step.disabled = done || !viz.events.length;
+    els.play.disabled = !viz.events.length;
+    els.play.textContent = viz.playing ? 'Pause' : (done && viz.events.length ? 'Replay' : 'Play');
+  }
+
+  function stopPlaying() {
+    viz.playing = false;
+    clearTimeout(viz.timer);
+    viz.timer = null;
+  }
+
+  function resetViz() {
+    stopPlaying();
+    viz.arr = viz.start.slice();
+    viz.idx = 0;
+    viz.range = null; viz.pivot = -1; viz.cmp = -1; viz.swap = null;
+    viz.placed = new Set();
+    viz.text = viz.events.length
+      ? 'Press Play to watch ' + viz.start.length + ' products get sorted by ' + KEYS[state.key].label.toLowerCase() + '.'
+      : 'Nothing to sort. Clear the search box or pick another category.';
+    paintBars();
+  }
+
+  function stepOnce() {
+    if (viz.idx >= viz.events.length) return;
+    const ev = viz.events[viz.idx++];
+    applyEvent(ev);
+    viz.text = describe(ev);
+    if (viz.idx >= viz.events.length) {
+      viz.swap = null; viz.pivot = -1; viz.cmp = -1;
+      viz.text = 'Done. ' + viz.start.length + ' products sorted with ' +
+        run.stats.comparisons + ' comparisons and ' + run.stats.swaps + ' swaps.';
+      stopPlaying();
+    }
+    paintBars();
+  }
+
+  function tick() {
+    if (!viz.playing) return;
+    stepOnce();
+    if (viz.playing) viz.timer = setTimeout(tick, 1000 / (Number(els.speed.value) * 1.6));
+  }
+
+  els.play.addEventListener('click', () => {
+    if (viz.playing) { stopPlaying(); paintBars(); return; }
+    if (viz.idx >= viz.events.length) resetViz();
+    viz.playing = true;
+    paintBars();
+    tick();
+  });
+  els.step.addEventListener('click', () => { stopPlaying(); stepOnce(); });
+  els.reset.addEventListener('click', resetViz);
+
+  /* ---------- Catalog rendering with a FLIP reorder animation ---------- */
+  function renderGrid(sorted) {
+    const first = new Map();
+    cards.forEach((el, id) => { if (!el.hidden) first.set(id, el.getBoundingClientRect()); });
+
+    const shown = new Set(sorted.map(p => p.id));
+    sorted.forEach((p, i) => {
+      const el = cards.get(p.id);
+      el.hidden = false;
+      el.querySelector('.rank').textContent = '#' + (i + 1);
+      el.querySelectorAll('[data-k]').forEach(n => n.classList.toggle('is-key', n.dataset.k === state.key));
+      els.grid.append(el);
+    });
+    cards.forEach((el, id) => {
+      if (!shown.has(id)) { el.hidden = true; els.grid.append(el); }
+    });
+
+    if (!reduceMotion) {
+      sorted.forEach(p => {
+        const el = cards.get(p.id);
+        const f = first.get(p.id);
+        if (!f) return;
+        const l = el.getBoundingClientRect();
+        const dx = f.left - l.left, dy = f.top - l.top;
+        if (dx || dy) {
+          el.animate(
+            [{ transform: 'translate(' + dx + 'px,' + dy + 'px)' }, { transform: 'none' }],
+            { duration: 450, easing: 'cubic-bezier(.2,.7,.2,1)' }
+          );
+        }
+      });
+    }
+
+    els.empty.hidden = sorted.length > 0;
+    const k = KEYS[state.key];
+    els.catalogMeta.textContent = 'Showing ' + sorted.length + ' of ' + PRODUCTS.length +
+      ' products, sorted by ' + k.label.toLowerCase() + ', ' + k[state.order].toLowerCase() + '.';
+  }
+
+  function renderStats(n, stats) {
+    els.sComp.textContent = stats.comparisons.toLocaleString('en-IN');
+    els.sSwap.textContent = stats.swaps.toLocaleString('en-IN');
+    els.sParts.textContent = stats.partitions.toLocaleString('en-IN');
+    els.sDepth.textContent = stats.maxDepth;
+    els.sTime.textContent = stats.ms < 0.01 ? 'under 0.01 ms' : stats.ms.toFixed(2) + ' ms';
+
+    const nlogn = n > 1 ? Math.round(n * Math.log2(n)) : 0;
+    const worst = n * (n - 1) / 2;
+    els.sRef.textContent = 'n = ' + n + '   n log₂ n ≈ ' + nlogn + '   n(n−1)/2 = ' + worst;
+
+    let note;
+    if (n < 2) {
+      note = 'Fewer than two products, so there is nothing to compare.';
+    } else if (stats.comparisons >= worst * 0.9) {
+      note = 'Worst case. The pivot was the smallest or largest item in almost every range, so the sort needed about n²/2 comparisons.';
+    } else if (stats.comparisons <= nlogn * 1.6) {
+      note = 'Close to the n log n ideal. The pivots split the ranges fairly evenly.';
+    } else {
+      note = 'Between the best and worst case. Change the pivot rule or the input order to see the count move.';
+    }
+    els.sNote.textContent = note;
+  }
+
+  /* ---------- Main pipeline ---------- */
+  function visibleProducts() {
+    const q = state.search.trim().toLowerCase();
+    return PRODUCTS.filter(p =>
+      (state.category === 'all' || p.category === state.category) &&
+      (!q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q))
+    );
+  }
+
+  function recompute() {
+    const cmp = makeComparator(state.key, state.order);
+    let input = visibleProducts();
+
+    if (state.arrangement === 'shuffled') {
+      input = shuffled(input, state.seed);
+    } else {
+      input = input.slice().sort(cmp);          // only builds the starting order
+      if (state.arrangement === 'reverse') input.reverse();
+    }
+
+    run = quickSort(input, cmp, { pivot: state.pivot, record: true });
+
+    viz.start = input;
+    viz.events = run.events;
