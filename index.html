@@ -997,4 +997,72 @@ function initApp() {
     run = quickSort(input, cmp, { pivot: state.pivot, record: true });
 
     viz.start = input;
-    viz.events = run.events;
+    viz.events = run.events;    viz.scale = makeScale(input);
+    els.vizInfo.textContent = input.length + ' products, ' + PIVOT_LABELS[state.pivot] + ' as pivot';
+    els.bars.setAttribute('aria-label', 'Bar chart of ' + input.length + ' products being sorted by ' + KEYS[state.key].label.toLowerCase());
+
+    buildBars();
+    resetViz();
+    renderGrid(run.sorted);
+    renderStats(input.length, run.stats);
+  }
+
+  function syncOrderLabels() {
+    const k = KEYS[state.key];
+    els.order.options[0].textContent = k.asc;
+    els.order.options[1].textContent = k.desc;
+  }
+
+  els.search.addEventListener('input', () => { state.search = els.search.value; recompute(); });
+  els.category.addEventListener('change', () => { state.category = els.category.value; recompute(); });
+  els.sortKey.addEventListener('change', () => { state.key = els.sortKey.value; syncOrderLabels(); recompute(); });
+  els.order.addEventListener('change', () => { state.order = els.order.value; recompute(); });
+  els.pivot.addEventListener('change', () => { state.pivot = els.pivot.value; recompute(); });
+  els.arrangement.addEventListener('change', () => { state.arrangement = els.arrangement.value; recompute(); });
+  els.reshuffle.addEventListener('click', () => {
+    state.seed = (state.seed * 7919 + 13) % 100003;
+    if (state.arrangement !== 'shuffled') {
+      state.arrangement = 'shuffled';
+      els.arrangement.value = 'shuffled';
+    }
+    recompute();
+  });
+
+  /* ---------- Speed test ---------- */
+  els.benchBtn.addEventListener('click', () => {
+    els.benchBtn.disabled = true;
+    els.bQuick.textContent = 'Running...';
+    els.bNative.textContent = 'Running...';
+    els.bSame.textContent = 'Running...';
+
+    setTimeout(() => {
+      const n = Number(els.benchSize.value);
+      const data = Array.from({ length: n }, () => Math.floor(Math.random() * 1000000));
+      const byValue = (a, b) => a - b;
+
+      const mine = quickSort(data, byValue, { pivot: state.pivot });
+
+      const copy = data.slice();
+      const t0 = now();
+      copy.sort(byValue);
+      const nativeMs = now() - t0;
+
+      let same = copy.length === mine.sorted.length;
+      for (let i = 0; same && i < copy.length; i++) if (copy[i] !== mine.sorted[i]) same = false;
+
+      els.bQuick.textContent = mine.stats.ms.toFixed(1) + ' ms, ' + mine.stats.comparisons.toLocaleString('en-IN') + ' comparisons';
+      els.bNative.textContent = nativeMs.toFixed(1) + ' ms';
+      els.bSame.textContent = same ? 'Yes, both lists are identical' : 'No, results differ';
+      els.benchBtn.disabled = false;
+    }, 30);
+  });
+
+  syncOrderLabels();
+  recompute();
+}
+
+if (typeof document !== 'undefined') initApp();
+
+</script>
+</body>
+</html>
